@@ -1,0 +1,30 @@
+# Environments
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Databases
+amr_history.db
+
+# User uploads & temporary files
+uploads/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Virtual environments (if any)
+venv/
+.venv/
+env/
+
+# Large models and backups
+*.joblib
+models/*.joblib
+models/stacking_backups/
+
+# Local project explanations (not uploaded to GitHub)
+THUYET_MINH_DE_TAI.md
+

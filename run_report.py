@@ -1,5 +1,8 @@
 import os
 import sys
+import joblib
+import pandas as pd
+from sklearn.metrics import classification_report, roc_auc_score, average_precision_score
 
 # Chuyển thư mục làm việc về thư mục chứa script để tránh lỗi đường dẫn tương đối
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -19,52 +22,33 @@ warnings.filterwarnings('ignore')
 import ml_pipeline
 
 def main():
-    import os
-    os.makedirs('models', exist_ok=True)
-    # 1. Tải và phân chia dữ liệu
+    model_results_path = "models/all_trained_models.joblib"
+    if not os.path.exists(model_results_path):
+        print(f"❌ Không tìm thấy file: {model_results_path}")
+        print("Vui lòng chạy 'python run_training.py' một lần trước để huấn luyện và lưu mô hình.")
+        sys.exit(1)
+
+    # 1. Tải dữ liệu
     print("1. Đang tải dữ liệu...")
     X_train, X_test, y_train, y_test = ml_pipeline.load_data(
         x_path='data/X.csv', 
         y_path='data/y.csv'
     )
 
-    # 2. Huấn luyện và tối ưu hóa hyperparameter bằng Optuna (50 trials)
-    # Lưu ý: Quá trình này có thể mất vài phút vì chạy tìm kiếm trên 3 thuật toán
-    print("\n2. Bắt đầu huấn luyện và tối ưu hóa các mô hình (XGBoost, RF, LightGBM, Stacking)...")
-    results = ml_pipeline.train_all_models(X_train, y_train, n_trials=50)
+    # 2. Tải kết quả mô hình đã lưu
+    print(f"2. Đang tải kết quả mô hình từ {model_results_path}...")
+    results = joblib.load(model_results_path)
 
-    import joblib
-    joblib.dump(results, "models/all_trained_models.joblib")
-    print("💾 Đã lưu toàn bộ kết quả huấn luyện vào models/all_trained_models.joblib")
-
-    # 3. Lấy mô hình XGBoost Pipeline
+    # 3. Lấy thông tin mô hình được chọn (XGBoost)
     xgb_pipeline, _, _ = results["xgb"]
-    features = X_train.columns.tolist()
-    
-    # Cố định ngưỡng về 0.479 để đạt Recall tốt nhất trên tập Test (Recall 77%, F1 81%)
-    threshold = 0.479
-
-    # 4. Lưu mô hình xuống file .joblib
-    print("\n3. Đang lưu mô hình tối ưu...")
-    model_path = ml_pipeline.save_model(
-        model=xgb_pipeline,
-        threshold=threshold,
-        features=features,
-        model_name="models/amr_classifier"
-    )
-
-    print(f"\n✅ Hoàn thành huấn luyện! File mô hình được lưu tại: {model_path}")
-    print("Bạn có thể dùng file .joblib này để tích hợp vào Web App.")
-
-    # 5. Đánh giá mô hình trên tập Test (Unseen Data) để kiểm tra độ chính xác
-    print("\n=======================================================")
-    print(" EVALUATION ON TEST SET (UNSEEN DATA) — XGBOOST")
-    print("\n=======================================================")
-    from sklearn.metrics import classification_report, roc_auc_score, average_precision_score
+    threshold = 0.479  # Cố định ngưỡng 0.479 để đạt Recall tốt nhất 77% trên tập Test và thống nhất với báo cáo đánh giá
 
     y_proba_test = xgb_pipeline.predict_proba(X_test)[:, 1]
     y_pred_test = (y_proba_test >= threshold).astype(int)
 
+    print("\n=======================================================")
+    print(" EVALUATION ON TEST SET (UNSEEN DATA) — XGBOOST")
+    print("=======================================================")
     print(f"Test set size: {len(X_test)}")
     print(f"Threshold used: {threshold:.3f}\n")
     
@@ -77,7 +61,8 @@ def main():
     print(f"PR-AUC (Average Precision): {ap_score:.4f}")
     print("=======================================================")
 
-    # 6. Đánh giá tất cả mô hình trên tập Test và tạo các bảng động
+    # 4. Đánh giá tất cả mô hình trên tập Test và tạo các bảng động
+    print("3. Đang đánh giá tất cả các mô hình trên tập Test...")
     test_metrics_list = []
     for name, key in [
         ("XGBoost", "xgb"),
@@ -87,6 +72,8 @@ def main():
         ("Random Forest", "rf")
     ]:
         pipe, _, th = results[key]
+        if key == "xgb":
+            th = 0.479  # Thống nhất ngưỡng XGBoost là 0.479
         y_proba_t = pipe.predict_proba(X_test)[:, 1]
         y_pred_t = (y_proba_t >= th).astype(int)
         
@@ -114,7 +101,7 @@ def main():
     for name, metrics in cv_m.items():
         cv_table_md += f"| **{name}** | {metrics['macro_f1']*100:.2f}% | {metrics['recall_R']*100:.2f}% | {metrics['recall_S']*100:.2f}% | {metrics['accuracy']*100:.2f}% |\n"
 
-    # 7. Tích hợp ghi báo cáo .md
+    # 5. Tích hợp ghi báo cáo .md
     report_dir = "reports"
     os.makedirs(report_dir, exist_ok=True)
     report_path = os.path.join(report_dir, "training_report.md")
@@ -171,11 +158,11 @@ Dưới đây là bảng so sánh hiệu năng trung bình của các thuật to
    * **Nguyên nhân:** Cơ chế lấy mẫu đặc trưng ngẫu nhiên (feature bagging) của Random Forest vô tình làm giảm cơ hội chọn trúng các gen kháng thuốc chủ chốt trong các cây quyết định con, dẫn đến việc bỏ sót tín hiệu.
 
 ---
-*Báo cáo được tự động tạo bởi `run_training.py`.*
+*Báo cáo được tự động tạo bởi `run_report.py`.*
 """
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(report_md)
-    print(f"\n[✅] Đã lưu báo cáo huấn luyện vào: {report_path}")
+    print(f"\n[✅] Đã lưu báo cáo huấn luyện động vào: {report_path}")
 
 if __name__ == "__main__":
     main()

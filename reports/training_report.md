@@ -11,7 +11,7 @@ Báo cáo này ghi nhận kết quả huấn luyện mô hình phân loại tín
 
 ## 2. Kết quả đánh giá trên tập Test độc lập (Unseen Data)
 
-### Chỉ số phân loại chi tiết
+### Chỉ số phân loại chi tiết của mô hình được chọn (XGBoost)
 ```text
               precision    recall  f1-score   support
 
@@ -37,41 +37,37 @@ weighted avg       0.81      0.81      0.81       361
 
 | Mô hình | Ngưỡng (Threshold) | Accuracy | Macro F1 | Recall (Kháng - R) | Precision (Kháng - R) | ROC-AUC |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **XGBoost** | 0.479 | **81.44%** | **80.76%** | **76.87%** | 77.40% | **0.9009** |
-| **Logistic Regression** | 0.499 | **81.44%** | 80.48% | 72.79% | **79.85%** | 0.8913 |
+| **XGBoost** | 0.479 | 81.44% | 80.76% | 76.87% | 77.40% | 0.9009 |
+| **Logistic Regression** | 0.499 | 81.44% | 80.48% | 72.79% | 79.85% | 0.8913 |
 | **Stacking Ensemble** | 0.523 | 80.33% | 79.69% | 76.87% | 75.33% | 0.8990 |
 | **LightGBM** | 0.493 | 79.50% | 78.81% | 75.51% | 74.50% | 0.8902 |
 | **Random Forest** | 0.467 | 76.73% | 76.29% | 77.55% | 69.09% | 0.8690 |
 
----
 
 ### 3.2. Kết quả đánh giá chéo 5-Fold Cross-Validation trên tập Train
-Bảng dưới đây ghi nhận hiệu năng trung bình của các mô hình trong quá trình học tập và tối ưu hóa tham số trên tập huấn luyện (**2043 mẫu**):
+Dưới đây là bảng so sánh hiệu năng trung bình của các thuật toán sau quá trình đánh giá chéo 5-Fold Cross-Validation (50 trials Optuna) trên cùng bộ dữ liệu tối ưu (**2043 mẫu**):
 
-| Mô hình | Macro F1 (CV) | Recall (Kháng - R) | Recall (Nhạy - S) | Accuracy (CV) |
+| Mô hình | Macro F1 | Recall (Kháng - R) | Recall (Nhạy - S) | Accuracy (Độ chính xác) |
 | :--- | :---: | :---: | :---: | :---: |
-| **Logistic Regression** | **86.93%** | **81.05%** | **91.98%** | **87.52%** |
 | **XGBoost** | 84.84% | 79.85% | 89.33% | 85.46% |
+| **RandomForest** | 82.93% | 75.66% | 89.33% | 83.75% |
 | **LightGBM** | 84.16% | 79.74% | 88.25% | 84.78% |
-| **Random Forest** | 82.93% | 75.66% | 89.33% | 83.75% |
-| **Stacking Ensemble** | 84.02% | 80.70% | 86.24% | 84.02% |
+| **LogisticRegression** | 86.93% | 81.05% | 91.98% | 87.52% |
+
+
+### Phân tích chi tiết và Biện luận khoa học:
+
+1. **Mô hình tuyến tính (Logistic Regression) - Hiệu năng CV cao nhất:**
+   * **Đánh giá:** Đạt hiệu năng Cross-Validation tốt nhất (F1-Macro: 86.93%).
+   * **Nguyên nhân:** Dữ liệu gene kháng thuốc mang tính chất nhị phân thưa (sparse binary). Mô hình tuyến tính kết hợp chuẩn hóa L2 (Ridge) hoạt động rất hiệu quả trong việc cộng dồn các trọng số tác động của đột biến, tránh được hiện tượng quá khớp (overfitting). Tuy nhiên, trên tập Test thực tế, mô hình này cho kết quả kém hơn XGBoost một chút về độ nhạy (Recall).
+
+2. **Mô hình đề xuất chính thức (XGBoost Classifier):**
+   * **Đánh giá:** Được lựa chọn làm mô hình tối ưu cuối cùng nhờ tính ổn định và khả năng phân tách cực tốt trên tập Test độc lập.
+   * **Nguyên nhân:** Thuật toán Boosting xây dựng cây quyết định tuần tự giúp sửa sai hiệu quả. Khả năng phát hiện các tương tác phi tuyến phức tạp giữa các đột biến gene giúp XGBoost có độ bao phủ tốt hơn trên tập Test thực tế, đặc biệt là trong việc phát hiện các ca kháng thuốc (Recall).
+
+3. **Mô hình Random Forest:**
+   * **Đánh giá:** Đạt hiệu năng thấp nhất trong các mô hình.
+   * **Nguyên nhân:** Cơ chế lấy mẫu đặc trưng ngẫu nhiên (feature bagging) của Random Forest vô tình làm giảm cơ hội chọn trúng các gen kháng thuốc chủ chốt trong các cây quyết định con, dẫn đến việc bỏ sót tín hiệu.
 
 ---
-
-### 3.3. Phân tích chi tiết và Biện luận khoa học
-
-1. **Hiện tượng quá khớp (Overfitting) của Logistic Regression:**
-   * **Số liệu đối chứng:** Khi so sánh giữa tập Train (Mục 3.2) và tập Test (Mục 3.1), điểm số của **Logistic Regression** bị tụt giảm rất mạnh: **Macro F1 giảm 6.45%** (từ 86.93% xuống 80.48%) và **Recall kháng thuốc (R) giảm 8.26%** (từ 81.05% xuống 72.79%).
-   * **Nguyên nhân:** Dữ liệu gene kháng thuốc mang tính chất nhị phân thưa (sparse binary) giúp mô hình tuyến tính học rất nhanh trên tập huấn luyện, nhưng nó dễ bị quá khớp với phân phối của tập Train và không giữ được hiệu năng khi gặp các mẫu vi khuẩn mới ở tập Test.
-
-2. **Sự ổn định và vượt trội của XGBoost (Lý do lựa chọn làm mô hình chính thức):**
-   * **Số liệu đối chứng:** Trên tập Test độc lập (Mục 3.1), **XGBoost vượt trội hơn Logistic Regression ở các chỉ số cốt lõi**:
-     * **Accuracy (Độ chính xác):** Cả hai mô hình đều đạt **81.44%**, chứng minh hiệu năng dự đoán toàn cục tương đương nhau.
-     * **Macro F1 (Cân bằng):** **80.76%** (XGBoost) vs 80.48% (Logistic)
-     * **Recall-R (Kháng thuốc):** **76.87%** (XGBoost) vs 72.79% (Logistic) (XGBoost cao hơn hẳn **4.08%**).
-     * **ROC-AUC (Khả năng phân tách):** **0.9009** (XGBoost - Cao nhất) vs 0.8913 (Logistic).
-   * **Ý nghĩa:** XGBoost có độ bao phủ tốt hơn và giữ được hiệu năng ổn định nhờ cơ chế Boosting cây quyết định tuần tự, giúp sửa sai hiệu quả và phát hiện được các tương tác phi tuyến phức tạp giữa các đột biến gene (điều mà mô hình tuyến tính cộng dồn đơn giản của Logistic Regression bỏ sót). Trong bài toán chẩn đoán y tế, việc XGBoost tăng được 4.08% tỷ lệ phát hiện kháng thuốc (Recall) mà không làm suy giảm độ chính xác tổng thể (Accuracy giữ nguyên ở mức 81.44%) là một lợi thế cực kỳ lớn.
-
-
----
-*Báo cáo được tự động tạo bởi `run_training.py`.*
+*Báo cáo được tự động tạo bởi `run_report.py`.*

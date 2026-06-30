@@ -1,10 +1,3 @@
-"""
-run_evaluation.py — Phân tích chuyên sâu mô hình AMR (Rút gọn)
-=============================================================================
-Chỉ giữ lại 2 phần quan trọng nhất:
-  1. Top-10 Feature Importance (Độ quan trọng đặc trưng)
-  2. FN/FP Error Analysis (Ma trận nhầm lẫn và phân tích sai số lâm sàng)
-"""
 import os
 import sys
 import glob

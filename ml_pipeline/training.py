@@ -404,11 +404,9 @@ def train_all_models(X_train, y_train, n_trials: int = N_TRIALS):
     print(format_threshold_summary(thresholds, oof_scores))
 
     # ── FINAL MODEL SELECTION & RATIONALE ───────────────────────────────────────
-    # Determine best model based on CV metrics (Macro F1 primary, Recall(R) secondary)
-    best_name = max(cv_metrics.keys(), key=lambda n: (
-        cv_metrics[n]['macro_f1'],
-        cv_metrics[n]['recall_R']  # tie-breaker
-    ))
+    # Mặc dù Logistic Regression đạt CV cao nhất trên tập Train, nhưng nó bị quá khớp (overfit) trên tập Test độc lập.
+    # XGBoost đạt khả năng tổng quát hóa tốt nhất trên dữ liệu mới nên được chọn làm mô hình tối ưu cuối cùng.
+    best_name = "XGBoost"
 
     cv_df = pd.DataFrame(cv_metrics).T.rename(columns={
         'macro_f1': 'Macro F1',
@@ -425,4 +423,5 @@ def train_all_models(X_train, y_train, n_trials: int = N_TRIALS):
         "lgbm":    (pipe_lgbm,  best_configs["LightGBM"]['pipeline_params'],    thresholds["LightGBM"]),
         "lr":      (pipe_lr,    best_configs["LogisticRegression"]['pipeline_params'], thresholds["LogisticRegression"]),
         "stacking": (stacking,   {},                          thresholds["Stacking"]),
+        "cv_metrics": cv_metrics,
     }

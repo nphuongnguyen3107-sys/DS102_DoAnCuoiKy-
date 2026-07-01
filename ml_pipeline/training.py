@@ -32,48 +32,44 @@ from .reporting import (
 # ── Pipeline builders ────────────────────────────────────────────────────────
 
 def build_xgb_pipeline(params: dict, k_features: int, smote_strategy: float) -> ImbPipeline:
-    base = XGBClassifier(**params, random_state=RANDOM_STATE, eval_metric="logloss")
+    clf = XGBClassifier(**params, random_state=RANDOM_STATE, eval_metric="logloss")
     steps = [
         ("imputer", SimpleImputer(strategy="median")),
         ("var_thresh", VarianceThreshold(threshold=VAR_THRESHOLD)),
-        ("rfe", RFE(estimator=base, n_features_to_select=min(k_features, 310), step=20)),
+        ("rfe", RFE(estimator=clone(clf), n_features_to_select=min(k_features, 310), step=20)),
         ("smote", SMOTE(sampling_strategy=smote_strategy, random_state=RANDOM_STATE)),
+        ("clf", clf),
     ]
-    clf_params = {**params, "random_state": RANDOM_STATE, "n_jobs": 1}
-    steps.append(("clf", XGBClassifier(**clf_params, eval_metric="logloss")))
     return ImbPipeline(steps)
 
 
 def build_rf_pipeline(params: dict, k_features: int, smote_strategy: float) -> ImbPipeline:
-    base = RandomForestClassifier(**params, random_state=RANDOM_STATE)
+    clf = RandomForestClassifier(**params, random_state=RANDOM_STATE)
     steps = [
         ("imputer", SimpleImputer(strategy="median")),
         ("var_thresh", VarianceThreshold(threshold=VAR_THRESHOLD)),
-        ("rfe", RFE(estimator=base, n_features_to_select=min(k_features, 310), step=20)),
+        ("rfe", RFE(estimator=clone(clf), n_features_to_select=min(k_features, 310), step=20)),
         ("smote", SMOTE(sampling_strategy=smote_strategy, random_state=RANDOM_STATE)),
+        ("clf", clf),
     ]
-    clf_params = {**params, "random_state": RANDOM_STATE, "n_jobs": 1}
-    steps.append(("clf", RandomForestClassifier(**clf_params)))
     return ImbPipeline(steps)
 
 
 def build_lgbm_pipeline(params: dict, k_features: int, smote_strategy: float) -> ImbPipeline:
-    base = LGBMClassifier(**params, random_state=RANDOM_STATE, verbose=-1)
+    clf = LGBMClassifier(**params, random_state=RANDOM_STATE, verbose=-1)
     steps = [
         ("imputer", SimpleImputer(strategy="median")),
         ("var_thresh", VarianceThreshold(threshold=VAR_THRESHOLD)),
-        ("rfe", RFE(estimator=base, n_features_to_select=min(k_features, 310), step=20)),
+        ("rfe", RFE(estimator=clone(clf), n_features_to_select=min(k_features, 310), step=20)),
         ("smote", SMOTE(sampling_strategy=smote_strategy, random_state=RANDOM_STATE)),
+        ("clf", clf),
     ]
-    clf_params = {**params, "random_state": RANDOM_STATE, "n_jobs": 1}
-    steps.append(("clf", LGBMClassifier(**clf_params)))
     return ImbPipeline(steps)
 
 
 # ── Optuna objectives ────────────────────────────────────────────────────────
 
 def objective_xgb(trial, X_train, y_train):
-    np.random.seed(RANDOM_STATE)
     smote_strategy = trial.suggest_float("smote_strategy", 0.58, 1.0)
     k_features = trial.suggest_int("k_features", 10, min(100, 310))
     params = {
@@ -96,7 +92,6 @@ def objective_xgb(trial, X_train, y_train):
 
 
 def objective_rf(trial, X_train, y_train):
-    np.random.seed(RANDOM_STATE)
     smote_strategy = trial.suggest_float("smote_strategy", 0.58, 1.0)
     k_features = trial.suggest_int("k_features", 10, min(100, 310))
     params = {
@@ -116,7 +111,6 @@ def objective_rf(trial, X_train, y_train):
 
 
 def objective_lgbm(trial, X_train, y_train):
-    np.random.seed(RANDOM_STATE)
     smote_strategy = trial.suggest_float("smote_strategy", 0.58, 1.0)
     k_features = trial.suggest_int("k_features", 10, min(100, 310))
     params = {
@@ -150,7 +144,6 @@ def build_lr_pipeline(params: dict) -> ImbPipeline:
 
 
 def objective_lr(trial, X_train, y_train):
-    np.random.seed(RANDOM_STATE)
     params = {
         "penalty": "l2",
         "C": trial.suggest_float("C", 1e-3, 10.0, log=True),
@@ -337,19 +330,9 @@ def train_all_models(X_train, y_train, n_trials: int = N_TRIALS):
     # ── CV COMPARISON WITH TRADE-OFF ANALYSIS ───────────────────────────────────
     print(format_cv_comparison(cv_metrics))
 
-    # FIX LỖI 2: fit trên toàn bộ data
-    print("\n" + "=" * 60)
-    print("FITTING MODELS ON FULL TRAINING SET")
-    print("=" * 60)
-    pipe_xgb.fit(X_train, y_train)
-    pipe_rf.fit(X_train, y_train)
-    pipe_lgbm.fit(X_train, y_train)
-    pipe_lr.fit(X_train, y_train)
-
     # Stacking
     print("\nBuilding stacking ensemble...")
     stacking = build_stacking_ensemble(pipe_xgb, pipe_rf, pipe_lgbm)
-    stacking.fit(X_train, y_train)
 
     # ── THRESHOLD TUNING WITH OOF METRICS ───────────────────────────────────────
     print("\n" + "=" * 60)
@@ -367,6 +350,7 @@ def train_all_models(X_train, y_train, n_trials: int = N_TRIALS):
         "Stacking": stacking
     }.items():
         print(f"\n── {name} ──")
+        # Find threshold on the UNFITTED pipeline to avoid data leakage
         th = find_optimal_threshold(pipe, X_train, y_train)
 
         # Get OOF probs for this model to compute metrics at tuned threshold
@@ -388,6 +372,16 @@ def train_all_models(X_train, y_train, n_trials: int = N_TRIALS):
 
     # ── THRESHOLD SUMMARY ────────────────────────────────────────────────────────
     print(format_threshold_summary(thresholds, oof_scores))
+
+    # ── FITTING FINAL MODELS ON FULL TRAINING SET ───────────────────────────────
+    print("\n" + "=" * 60)
+    print("FITTING FINAL MODELS ON FULL TRAINING SET")
+    print("=" * 60)
+    pipe_xgb.fit(X_train, y_train)
+    pipe_rf.fit(X_train, y_train)
+    pipe_lgbm.fit(X_train, y_train)
+    pipe_lr.fit(X_train, y_train)
+    stacking.fit(X_train, y_train)
 
     # ── FINAL MODEL SELECTION & RATIONALE ───────────────────────────────────────
     best_name = "XGBoost"

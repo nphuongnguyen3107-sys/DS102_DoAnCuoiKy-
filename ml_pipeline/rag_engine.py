@@ -92,44 +92,42 @@ class RAGEngine:
         if not self.pdf_loaded or not self.chunks:
             return []
             
-        # 1. Trích xuất từ khóa tìm kiếm
-        clean_query = self.clean_text(query)
-        words = [w for w in clean_query.split() if w and w not in VIETNAMESE_STOPWORDS]
+        # Lazily fit TF-IDF vectorizer if not already fitted
+        if not hasattr(self, 'vectorizer'):
+            from sklearn.feature_extraction.text import TfidfVectorizer
+            # Convert stopwords list to match sklearn expectations
+            self.vectorizer = TfidfVectorizer(token_pattern=r'\b\w+\b')
+            corpus = [self.clean_text(chunk["text"]) for chunk in self.chunks]
+            self.tfidf_matrix = self.vectorizer.fit_transform(corpus)
+
+        from sklearn.metrics.pairwise import cosine_similarity
         
-        if not words:
-            return []
-            
+        # Vectorize query and calculate cosine similarity
+        query_clean = self.clean_text(query)
+        query_vec = self.vectorizer.transform([query_clean])
+        similarities = cosine_similarity(query_vec, self.tfidf_matrix).flatten()
+        
         scored_chunks = []
-        
-        for chunk in self.chunks:
-            chunk_text_clean = self.clean_text(chunk["text"])
-            score = 0.0
-            
-            # Tính điểm khớp từ khóa
-            for word in words:
-                # Nếu từ khóa xuất hiện trong chunk
-                count = chunk_text_clean.count(word)
-                if count > 0:
-                    # Thuốc kháng sinh, vi khuẩn và các gen đặc biệt được nhân hệ số trọng số
-                    is_medical_term = any(term in word for term in [
-                        "kháng_sinh", "kháng", "vi_khuẩn", "phác_đồ", "điều_trị",
-                        "nhạy", "đề_kháng", "cephalosporin", "fluoroquinolone", 
-                        "carbapenem", "penicillin", "aminoglycoside", "tetracycline",
-                        "ciprofloxacin", "levofloxacin", "imipenem", "meropenem",
-                        "gentamicin", "amikacin", "streptomycin", "colistin", "mcr",
-                        "gyra", "parc", "ctx-m", "tem", "oxa", "shv", "ndm", "kpc"
-                    ])
-                    weight = 3.0 if is_medical_term else 1.0
-                    score += count * weight
-            
-            # Cộng thêm điểm thưởng nếu có cụm từ ghép (2 từ liên tiếp) khớp nguyên bản
-            for i in range(len(words) - 1):
-                phrase = words[i] + " " + words[i+1]
-                if phrase in chunk_text_clean:
-                    score += 5.0
-                    
-            if score > 0:
-                scored_chunks.append((score, chunk))
+        for idx, similarity in enumerate(similarities):
+            if similarity > 0:
+                chunk = self.chunks[idx]
+                # Apply small boost for key medical terms in the chunk if they are also in the query
+                boost = 0.0
+                chunk_text_clean = self.clean_text(chunk["text"])
+                for term in [
+                    "kháng_sinh", "kháng", "vi_khuẩn", "phác_đồ", "điều_trị",
+                    "nhạy", "đề_kháng", "cephalosporin", "fluoroquinolone", 
+                    "carbapenem", "penicillin", "aminoglycoside", "tetracycline",
+                    "ciprofloxacin", "levofloxacin", "imipenem", "meropenem",
+                    "gentamicin", "amikacin", "streptomycin", "colistin", "mcr",
+                    "gyra", "parc", "ctx-m", "tem", "oxa", "shv", "ndm", "kpc"
+                ]:
+                    # Clean comparison of word bounds
+                    term_clean = term.replace("_", " ")
+                    if term_clean in query_clean and term_clean in chunk_text_clean:
+                        boost += 0.05
+                
+                scored_chunks.append((similarity + boost, chunk))
                 
         # Sắp xếp các đoạn theo điểm số giảm dần
         scored_chunks.sort(key=lambda x: x[0], reverse=True)
@@ -139,7 +137,6 @@ class RAGEngine:
         seen_texts = set()
         
         for score, chunk in scored_chunks:
-            # Tránh lấy các đoạn trùng lặp nội dung
             text_summary = chunk["text"][:100]
             if text_summary not in seen_texts:
                 results.append(chunk)

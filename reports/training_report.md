@@ -5,9 +5,9 @@ Báo cáo này ghi nhận kết quả huấn luyện mô hình phân loại tín
 ## 1. Thông tin mô hình
 * **Thuật toán được chọn:** XGBoost Classifier (Mô hình Boosting cây quyết định)
 * **Phương pháp tối ưu hóa:** Optuna (50 trials)
-* **Kích thước dữ liệu huấn luyện (Train Set):** 2043 mẫu
-* **Kích thước dữ liệu kiểm thử (Test Set):** 361 mẫu
-* **Ngưỡng quyết định (Classification Threshold):** 0.479
+* **Kích thước dữ liệu huấn luyện (Train Set):** {len(X_train)} mẫu
+* **Kích thước dữ liệu kiểm thử (Test Set):** {len(X_test)} mẫu
+* **Ngưỡng quyết định (Classification Threshold):** 0.498
 
 ## 2. Kết quả đánh giá trên tập Test độc lập (Unseen Data)
 
@@ -15,18 +15,18 @@ Báo cáo này ghi nhận kết quả huấn luyện mô hình phân loại tín
 ```text
               precision    recall  f1-score   support
 
- Susceptible       0.84      0.85      0.84       214
-   Resistant       0.77      0.77      0.77       147
+ Susceptible       0.83      0.86      0.84       214
+   Resistant       0.78      0.74      0.76       147
 
     accuracy                           0.81       361
-   macro avg       0.81      0.81      0.81       361
+   macro avg       0.80      0.80      0.80       361
 weighted avg       0.81      0.81      0.81       361
 
 ```
 
 ### Các chỉ số hiệu năng chính
-* **ROC-AUC (Diện tích dưới đường cong ROC):** 0.9009
-* **PR-AUC (Diện tích dưới đường cong Precision-Recall):** 0.8880
+* **ROC-AUC (Diện tích dưới đường cong ROC):** 0.8964
+* **PR-AUC (Diện tích dưới đường cong Precision-Recall):** 0.8829
 
 ---
 
@@ -37,9 +37,9 @@ weighted avg       0.81      0.81      0.81       361
 
 | Mô hình | Ngưỡng (Threshold) | Accuracy | Macro F1 | Recall (Kháng - R) | Precision (Kháng - R) | ROC-AUC |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **XGBoost** | 0.479 | 81.44% | 80.76% | 76.87% | 77.40% | 0.9009 |
+| **XGBoost** | 0.498 | 80.89% | 80.05% | 74.15% | 77.86% | 0.8964 |
 | **Logistic Regression** | 0.499 | 81.44% | 80.48% | 72.79% | 79.85% | 0.8913 |
-| **Stacking Ensemble** | 0.523 | 80.33% | 79.69% | 76.87% | 75.33% | 0.8990 |
+| **Stacking Ensemble** | 0.523 | 78.95% | 78.29% | 75.51% | 73.51% | 0.8955 |
 | **LightGBM** | 0.493 | 79.50% | 78.81% | 75.51% | 74.50% | 0.8902 |
 | **Random Forest** | 0.467 | 76.73% | 76.29% | 77.55% | 69.09% | 0.8690 |
 
@@ -70,4 +70,4 @@ Dưới đây là bảng so sánh hiệu năng trung bình của các thuật to
    * **Nguyên nhân:** Cơ chế lấy mẫu đặc trưng ngẫu nhiên (feature bagging) của Random Forest vô tình làm giảm cơ hội chọn trúng các gen kháng thuốc chủ chốt trong các cây quyết định con, dẫn đến việc bỏ sót tín hiệu.
 
 ---
-*Báo cáo được tự động tạo bởi `run_report.py`.*
+*Báo cáo được tự động tạo bởi hệ thống.*

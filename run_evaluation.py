@@ -3,7 +3,8 @@ import sys
 import glob
 import numpy as np
 import pandas as pd
-from sklearn.metrics import confusion_matrix, classification_report
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix, classification_report, roc_curve, auc, precision_recall_curve, average_precision_score
 
 # Đảm bảo stdout/stderr sử dụng UTF-8 để tránh UnicodeEncodeError trên Windows
 if hasattr(sys.stdout, 'reconfigure'):
@@ -126,5 +127,61 @@ def main():
 
     print(f"\n[OK] Đã lưu báo cáo phân tích chuyên sâu rút gọn vào: {report_path}")
 
+    # 4. Vẽ biểu đồ Overfitting Check
+    print("Đang vẽ biểu đồ kiểm tra Overfitting (ROC & PR)...")
+    try:
+        y_proba_train = proposed_model.predict_proba(X_train)[:, 1]
+        y_proba_test = proposed_model.predict_proba(X_test)[:, 1]
+        
+        fpr_train, tpr_train, _ = roc_curve(y_train, y_proba_train)
+        roc_auc_train = auc(fpr_train, tpr_train)
+        
+        fpr_test, tpr_test, _ = roc_curve(y_test, y_proba_test)
+        roc_auc_test = auc(fpr_test, tpr_test)
+        
+        precision_train, recall_train, _ = precision_recall_curve(y_train, y_proba_train)
+        pr_auc_train = average_precision_score(y_train, y_proba_train)
+        
+        precision_test, recall_test, _ = precision_recall_curve(y_test, y_proba_test)
+        pr_auc_test = average_precision_score(y_test, y_proba_test)
+        
+        plt.rcParams['font.family'] = 'sans-serif'
+        plt.rcParams['font.size'] = 10
+        plt.rcParams['axes.unicode_minus'] = False
+        
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+        
+        # --- Plot 1: ROC Curve ---
+        ax1.plot(fpr_train, tpr_train, color='#1f77b4', lw=2, label=f'Train ROC (AUC = {roc_auc_train:.4f})')
+        ax1.plot(fpr_test, tpr_test, color='#ff7f0e', lw=2, label=f'Test ROC (AUC = {roc_auc_test:.4f})')
+        ax1.plot([0, 1], [0, 1], color='gray', linestyle='--', lw=1)
+        ax1.set_xlim([0.0, 1.0])
+        ax1.set_ylim([0.0, 1.05])
+        ax1.set_xlabel('False Positive Rate (FPR)')
+        ax1.set_ylabel('True Positive Rate (TPR)')
+        ax1.set_title('Receiver Operating Characteristic (ROC) Curves')
+        ax1.legend(loc="lower right")
+        ax1.grid(True, linestyle=':', alpha=0.6)
+        
+        # --- Plot 2: Precision-Recall Curve ---
+        ax2.plot(recall_train, precision_train, color='#1f77b4', lw=2, label=f'Train PR (AP = {pr_auc_train:.4f})')
+        ax2.plot(recall_test, precision_test, color='#ff7f0e', lw=2, label=f'Test PR (AP = {pr_auc_test:.4f})')
+        ax2.set_xlim([0.0, 1.0])
+        ax2.set_ylim([0.0, 1.05])
+        ax2.set_xlabel('Recall')
+        ax2.set_ylabel('Precision')
+        ax2.set_title('Precision-Recall (PR) Curves')
+        ax2.legend(loc="lower left")
+        ax2.grid(True, linestyle=':', alpha=0.6)
+        
+        plt.tight_layout()
+        output_png = "reports/overfitting_check.png"
+        plt.savefig(output_png, dpi=300)
+        plt.close()
+        print(f"[OK] Đã vẽ và lưu biểu đồ overfitting check tại: {output_png}")
+    except Exception as e:
+        print(f"[Error] Không thể vẽ biểu đồ: {e}")
+
 if __name__ == "__main__":
     main()
+

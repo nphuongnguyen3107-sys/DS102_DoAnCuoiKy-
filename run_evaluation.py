@@ -23,11 +23,11 @@ def load_latest_model():
     if not model_files:
         # Thử load file mặc định nếu không có timestamp
         if os.path.exists("models/amr_classifier.joblib"):
-            print("📂 Loading model: models/amr_classifier.joblib")
+            print("Loading model: models/amr_classifier.joblib")
             return ml_pipeline.load_model("models/amr_classifier.joblib")
         raise FileNotFoundError("Không tìm thấy file .joblib — hãy chạy run_training.py trước.")
     path = model_files[-1]
-    print(f"📂 Loading model: {path}")
+    print(f"Loading model: {path}")
     return ml_pipeline.load_model(path)
 
 class Tee(object):
@@ -47,9 +47,9 @@ def main():
     report_path = os.path.join(report_dir, "evaluation_report.md")
 
     # Load dữ liệu
-    print("📊 Đang tải dữ liệu...")
+    print("Đang tải dữ liệu...")
     X_train, X_test, y_train, y_test = ml_pipeline.load_data(
-        x_path='data/X.csv',
+        x_path='data/X_rf.csv',
         y_path='data/y.csv'
     )
 
@@ -124,7 +124,7 @@ def main():
         finally:
             sys.stdout = original_stdout
 
-    print(f"\n[✅] Đã lưu báo cáo phân tích chuyên sâu rút gọn vào: {report_path}")
+    print(f"\n[OK] Đã lưu báo cáo phân tích chuyên sâu rút gọn vào: {report_path}")
 
 if __name__ == "__main__":
     main()

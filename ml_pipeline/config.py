@@ -1,6 +1,4 @@
 # ml-pipeline/config.py
-"""Global configuration — all tunable hyperparameters in one place."""
-
 import numpy as np
 from sklearn.metrics import make_scorer, f1_score, recall_score
 from sklearn.model_selection import StratifiedKFold
@@ -28,17 +26,15 @@ CONT_COLS: list[str] = []
 def soft_objective(macro_f1: float, recall_R: float,
                    target: float = TARGET_RECALL_R,
                    weight: float = PENALTY_WEIGHT) -> float:
-    """Composite score: macro-F1 với penalty khi recall Resistant thấp."""
     penalty = max(0.0, target - recall_R) * weight
     return macro_f1 - penalty
 
 
 def report_cv(name: str, cv_result: dict) -> float:
-    """In báo cáo CV và trả về objective score."""
     mf1 = cv_result["test_macro_f1"].mean()
     rR = cv_result["test_recall_R"].mean()
     obj = soft_objective(mf1, rR)
-    print(f"\n📊 {name}:")
+    print(f"\n{name}:")
     print(f"  Macro F1 : {mf1*100:.2f}%")
     print(f"  Recall(R) : {rR*100:.2f}%")
     print(f"  Objective : {obj:.4f}")

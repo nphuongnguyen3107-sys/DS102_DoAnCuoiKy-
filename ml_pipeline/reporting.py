@@ -1,37 +1,8 @@
-"""
-Reporting utilities — format và in báo cáo huấn luyện/đánh giá.
-
-Các module:
-- Hyperparameter tables (full config cho từng model)
-- CV comparison với trade-off analysis
-- Threshold tuning summary
-- Final model selection rationale
-"""
-
 from typing import Dict, Tuple, Any
 import pandas as pd
 
 
 def format_hyperparams_table(best_configs: Dict[str, Dict]) -> str:
-    """
-    Tạo bảng đầy đủ hyperparameters của tất cả models.
-
-    Parameters
-    ----------
-    best_configs : dict
-        Structure: {
-            model_name: {
-                'pipeline_params': dict,  # params cho classifier (không có smote/k_features)
-                'full_params': dict,      # full params từ Optuna (có smote, k_features)
-                'k_features': int,
-                'smote_strategy': float
-            }
-        }
-
-    Returns
-    -------
-    str : formatted table
-    """
     lines = [
         "=" * 80,
         " " * 20 + "FULL HYPERPARAMETER CONFIGURATION",
@@ -47,7 +18,6 @@ def format_hyperparams_table(best_configs: Dict[str, Dict]) -> str:
         smote_str = f"{smote_val:.4f}" if isinstance(smote_val, (int, float)) else str(smote_val)
         lines.append(f"    SMOTE strategy      : {smote_str}")
 
-        # Use full_params (includes all Optuna params including smote_strategy, k_features)
         params = config['full_params']
         lines.append(f"\n  All Optuna Hyperparameters:")
 
@@ -68,26 +38,6 @@ def format_hyperparams_table(best_configs: Dict[str, Dict]) -> str:
 
 
 def format_cv_comparison(cv_metrics: Dict[str, Dict[str, float]]) -> str:
-    """
-    Tạo bảng so sánh CV results với trade-off analysis.
-
-    Parameters
-    ----------
-    cv_metrics : dict
-        Structure: {
-            model_name: {
-                'macro_f1': float,
-                'recall_R': float,
-                'recall_S': float,
-                'accuracy': float,
-                'roc_auc': float (optional)
-            }
-        }
-
-    Returns
-    -------
-    str : formatted comparison table + insights
-    """
     df = pd.DataFrame(cv_metrics).T
 
     expected_cols = ['macro_f1', 'recall_R', 'recall_S', 'accuracy']
@@ -163,18 +113,6 @@ def format_threshold_summary(
     thresholds: Dict[str, float],
     oof_metrics: Dict[str, Dict[str, float]] = None
 ) -> str:
-    """
-    Bảng threshold tuning summary.
-
-    Parameters
-    ----------
-    thresholds : dict {model_name: optimal_threshold}
-    oof_metrics : dict {model_name: {'macro_f1': ..., 'recall_R': ...}}
-
-    Returns
-    -------
-    str : formatted table
-    """
     lines = [
         "\n" + "=" * 80,
         " " * 22 + "THRESHOLD TUNING SUMMARY (OOF)",
@@ -205,20 +143,6 @@ def format_final_selection_rationale(
     thresholds: Dict[str, float],
     target_recall: float = 0.80
 ) -> str:
-    """
-    Giải thích lý do chọn final model dựa trên trade-off analysis.
-
-    Parameters
-    ----------
-    best_name : str - tên model được chọn
-    cv_df : DataFrame với index là model names, columns là metrics (%)
-    thresholds : dict {model_name: threshold}
-    target_recall : float - target Recall(R) mong đợi
-
-    Returns
-    -------
-    str : formatted rationale
-    """
     lines = [
         "\n" + "=" * 80,
         " " * 20 + "FINAL MODEL SELECTION RATIONALE",
@@ -269,16 +193,16 @@ def format_final_selection_rationale(
         )
     else:
         lines.append(
-            f"  ✓ {best_name} selected as the final model.\n"
+            f"  [OK] {best_name} selected as the final model.\n"
             f"    Reason: XGBoost demonstrates the best generalization capability on the unseen independent Test Set,\n"
-            f"            successfully avoiding the overfitting observed in Logistic Regression (which drops significantly on the test set)."
+            f"            successfully avoiding the overfitting observed in Logistic Regression (which drops significantly on the test set).\n"
         )
 
     if meets_target:
-        lines.append(f"\n  ✓ Meets clinical requirement: Recall(R) >= {target_recall*100:.0f}% ✓")
+        lines.append(f"\n  [OK] Meets clinical requirement: Recall(R) >= {target_recall*100:.0f}%")
     else:
         lines.append(
-            f"\n  ⚠️  Below target Recall(R) {target_recall*100:.0f}% — consider:\n"
+            f"\n  [Warning] Below target Recall(R) {target_recall*100:.0f}% — consider:\n"
             f"     - Lowering threshold further (may increase FP)\n"
             f"     - Adding more resistant samples (data collection)\n"
             f"     - Trying different sampling strategy (SMOTE variant)"
@@ -291,31 +215,6 @@ def format_final_selection_rationale(
 def format_model_comparison_detailed(
     models_data: Dict[str, Dict[str, Any]]
 ) -> str:
-    """
-    Bảng so sánh chi tiết tất cả models với tất cả metrics có thể.
-
-    Parameters
-    ----------
-    models_data : dict
-        {
-            model_name: {
-                'macro_f1': float,
-                'recall_R': float,
-                'recall_S': float,
-                'accuracy': float,
-                'precision_R': float (optional),
-                'roc_auc': float (optional),
-                'pr_auc': float (optional),
-                'threshold': float,
-                'train_time': str (optional),
-                'n_features': int (optional)
-            }
-        }
-
-    Returns
-    -------
-    str : formatted detailed table
-    """
     df = pd.DataFrame(models_data).T
 
     col_order = ['macro_f1', 'recall_R', 'recall_S', 'accuracy',

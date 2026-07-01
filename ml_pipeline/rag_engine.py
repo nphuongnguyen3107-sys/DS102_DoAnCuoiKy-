@@ -1,9 +1,4 @@
 # ml_pipeline/rag_engine.py
-"""
-Hệ thống RAG nhẹ (Retrieval-Augmented Generation) đọc file PDF và tìm kiếm thông tin lâm sàng.
-Không yêu cầu C++ compiler hoặc Vector Database cồng kềnh.
-"""
-
 import os
 import re
 import glob
@@ -26,15 +21,23 @@ class RAGEngine:
         self.auto_load_pdfs()
 
     def auto_load_pdfs(self):
-        """Quét tìm file PDF trong thư mục dự án và tải nội dung."""
-        # Ưu tiên các file PDF hướng dẫn điều trị hoặc kháng sinh
-        pdf_pattern = os.path.join(self.workspace_dir, "*.pdf")
-        pdf_files = glob.glob(pdf_pattern)
+        pdf_files = []
         
-        # Quét thêm cả thư mục cha nếu app.py chạy ở thư mục con
+        # 1. Quét trong thư mục gốc
+        pdf_pattern = os.path.join(self.workspace_dir, "*.pdf")
+        pdf_files.extend(glob.glob(pdf_pattern))
+        
+        # 2. Quét trong thư mục docs/
+        docs_pattern = os.path.join(self.workspace_dir, "docs", "*.pdf")
+        pdf_files.extend(glob.glob(docs_pattern))
+        
+        # 3. Quét thêm cả thư mục cha nếu app.py chạy ở thư mục con
         if not pdf_files:
             pdf_pattern_parent = os.path.join(os.path.dirname(self.workspace_dir), "*.pdf")
-            pdf_files = glob.glob(pdf_pattern_parent)
+            pdf_files.extend(glob.glob(pdf_pattern_parent))
+            
+            docs_pattern_parent = os.path.join(os.path.dirname(self.workspace_dir), "docs", "*.pdf")
+            pdf_files.extend(glob.glob(docs_pattern_parent))
 
         for pdf_path in pdf_files:
             filename = os.path.basename(pdf_path)
@@ -47,7 +50,6 @@ class RAGEngine:
             self.load_pdf(pdf_path)
 
     def load_pdf(self, pdf_path):
-        """Đọc và phân đoạn (chunking) file PDF."""
         filename = os.path.basename(pdf_path)
         if not os.path.exists(pdf_path):
             print(f"[RAG] File does not exist: {filename}")
@@ -87,7 +89,6 @@ class RAGEngine:
         return text
 
     def search(self, query, top_k=4):
-        """Tìm kiếm các đoạn văn bản liên quan nhất dựa trên câu hỏi của người dùng."""
         if not self.pdf_loaded or not self.chunks:
             return []
             

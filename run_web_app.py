@@ -666,17 +666,17 @@ def generate_ai_report(outcome, probability, top_features, threshold):
                 req = urllib.request.Request(url, data=json.dumps(payload).encode('utf-8'), headers=headers, method='POST')
                 with urllib.request.urlopen(req, timeout=30) as response:
                     res_data = json.loads(response.read().decode('utf-8'))
-                    print(f"✅ [AI Report] Gọi Gemini ({gemini_model}) thành công!")
+                    print(f"[OK] [AI Report] Gọi Gemini ({gemini_model}) thành công!")
                     return res_data['candidates'][0]['content']['parts'][0]['text']
             except Exception as e:
-                print(f"⚠️ [AI Report] Thử lần {attempt+1} thất bại: {e}")
+                print(f"[Warning] [AI Report] Thử lần {attempt+1} thất bại: {e}")
                 if attempt < max_retries - 1:
                     time.sleep(1.5)
                 else:
-                    print(f"❌ [AI Report] Lỗi gọi Gemini API sau {max_retries} lần thử: {e}")
+                    print(f"[Error] [AI Report] Lỗi gọi Gemini API sau {max_retries} lần thử: {e}")
 
     # Fallback về Local Expert System nếu API key trống hoặc lỗi
-    print("⚠️ [AI Report] Không kết nối được dịch vụ Gemini trực tuyến. Tự động chuyển về Hệ chuyên gia cục bộ (Local).")
+    print("[Warning] [AI Report] Không kết nối được dịch vụ Gemini trực tuyến. Tự động chuyển về Hệ chuyên gia cục bộ (Local).")
     return f"*(Không thể kết nối dịch vụ Gemini trực tuyến. Đang tự động hiển thị báo cáo từ Hệ chuyên gia cục bộ)*\n\n" + \
            generate_local_report(outcome, probability, top_features, threshold)
 
@@ -704,7 +704,7 @@ def call_ai_chat(system_instruction, history, user_message):
     })
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:generateContent?key={gemini_key.strip()}"
-    print(f"💬 [AI Chat] Đang gọi Gemini API (Model: {gemini_model})...")
+    print(f"[AI Chat] Đang gọi Gemini API (Model: {gemini_model})...")
     
     payload = {
         "system_instruction": {
@@ -721,20 +721,20 @@ def call_ai_chat(system_instruction, history, user_message):
             req = urllib.request.Request(url, data=json.dumps(payload).encode('utf-8'), headers=headers, method='POST')
             with urllib.request.urlopen(req, timeout=30) as response:
                 res_data = json.loads(response.read().decode('utf-8'))
-                print(f"✅ [AI Chat] Gọi Gemini ({gemini_model}) thành công!")
+                print(f"[OK] [AI Chat] Gọi Gemini ({gemini_model}) thành công!")
                 return res_data['candidates'][0]['content']['parts'][0]['text']
         except Exception as e:
-            print(f"⚠️ [AI Chat] Thử lần {attempt+1} thất bại: {e}")
+            print(f"[Warning] [AI Chat] Thử lần {attempt+1} thất bại: {e}")
             if attempt < max_retries - 1:
                 time.sleep(1.5)
             else:
-                print(f"❌ [AI Chat] Lỗi gọi Gemini Chat API sau {max_retries} lần thử: {e}")
+                print(f"[Error] [AI Chat] Lỗi gọi Gemini Chat API sau {max_retries} lần thử: {e}")
                 raise e
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='web/templates', static_folder='web/static')
 
 # Cấu hình đường dẫn thư mục tải lên tạm thời
-UPLOAD_FOLDER = 'uploads'
+UPLOAD_FOLDER = 'web/uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -773,13 +773,13 @@ def init_model():
         
         # Tải dữ liệu nền (background) để khởi tạo SHAP Explainer
         # Nếu có file CSV dữ liệu, dùng 100 mẫu đầu tiên làm background
-        if os.path.exists("data/X.csv"):
-            X_background = pd.read_csv("data/X.csv", index_col=0).head(100)
+        if os.path.exists("data/X_rf.csv"):
+            X_background = pd.read_csv("data/X_rf.csv", index_col=0).head(100)
             print("Initializing SHAP Explainer...")
             SHAP_EXPLAINER = ml_pipeline.build_shap_explainer(MODEL, X_background)
             print("Success: SHAP Explainer initialized successfully!")
         else:
-            print("Warning: data/X.csv not found. SHAP features will be disabled.")
+            print("Warning: data/X_rf.csv not found. SHAP features will be disabled.")
         return True
     except Exception as e:
         print(f"Error: Failed to load model: {e}")
@@ -825,12 +825,12 @@ def get_gene_db():
 @app.route('/api/get_samples', methods=['GET'])
 def get_samples():
     """Trả về 3 mẫu bệnh nhân ngẫu nhiên (1 kháng thuốc, 1 nhạy cảm, 1 ngẫu nhiên) để test nhanh."""
-    if not os.path.exists("data/X.csv") or not os.path.exists("data/y.csv"):
+    if not os.path.exists("data/X_rf.csv") or not os.path.exists("data/y.csv"):
         return jsonify({"status": "error", "message": "Data files not found."}), 404
     
     try:
         import random
-        X = pd.read_csv("data/X.csv", index_col=0)
+        X = pd.read_csv("data/X_rf.csv", index_col=0)
         y = pd.read_csv("data/y.csv", index_col=0).iloc[:, 0]
         
         # Lọc mẫu Resistant (1) và Susceptible (0)

@@ -1,6 +1,4 @@
 # ml-pipeline/training.py
-"""Model training — Optuna tuning + stacking ensemble."""
-
 import numpy as np
 import pandas as pd
 import warnings
@@ -73,7 +71,6 @@ def build_lgbm_pipeline(params: dict, k_features: int, smote_strategy: float) ->
 
 
 # ── Optuna objectives ────────────────────────────────────────────────────────
-# FIX LỖI 3: nhận X_train, y_train làm parameter (closure), không dùng global
 
 def objective_xgb(trial, X_train, y_train):
     np.random.seed(RANDOM_STATE)
@@ -210,19 +207,11 @@ def find_optimal_threshold(clf, X_train, y_train) -> float:
 # ── High-level training functions ───────────────────────────────────────────
 
 def train_all_models(X_train, y_train, n_trials: int = N_TRIALS):
-    """
-    Chạy Optuna cho cả 3 model, fit trên toàn bộ X_train, trả về fitted pipelines.
-
-    Returns
-    -------
-    dict với keys: xgb, rf, lgbm, stacking
-    Mỗi item là (pipeline_fitted, best_params_dict, threshold)
-    """
     import optuna
     from sklearn.metrics import recall_score, accuracy_score
 
     print("=" * 60)
-    print("🔍 OPTUNA TUNING — 3 MODELS")
+    print("OPTUNA TUNING — 3 MODELS")
     print("=" * 60)
 
     best_configs = {}
@@ -261,7 +250,6 @@ def train_all_models(X_train, y_train, n_trials: int = N_TRIALS):
     # ── IN FULL HYPERPARAMETER TABLE ─────────────────────────────────────────────
     print(format_hyperparams_table(best_configs))
 
-    # FIX LỖI 1: build pipelines từ config dict
     cfg_xgb = best_configs["XGBoost"]
     cfg_rf = best_configs["RandomForest"]
     cfg_lgbm = best_configs["LightGBM"]
@@ -272,8 +260,6 @@ def train_all_models(X_train, y_train, n_trials: int = N_TRIALS):
     pipe_lgbm = build_lgbm_pipeline(cfg_lgbm['pipeline_params'], cfg_lgbm['k_features'], cfg_lgbm['smote_strategy'])
     pipe_lr = build_lr_pipeline(cfg_lr['pipeline_params'])
 
-    # ── THÊM STACKING CONFIG CHO REPORTING ───────────────────────────────────────
-    # Stacking không có Optuna params, nhưng có final_estimator config
     stacking_config = {
         'pipeline_params': {},  # Stacking không có classifier params riêng
         'full_params': {
@@ -298,7 +284,7 @@ def train_all_models(X_train, y_train, n_trials: int = N_TRIALS):
 
     # ── CROSS-VALIDATION WITH FULL METRICS ─────────────────────────────────────
     print("\n" + "=" * 60)
-    print("📊 CROSS-VALIDATION METRICS (5-fold)")
+    print("CROSS-VALIDATION METRICS (5-fold)")
     print("=" * 60)
 
     cv_metrics = {}
@@ -342,7 +328,7 @@ def train_all_models(X_train, y_train, n_trials: int = N_TRIALS):
         rR = cv_metrics[name]['recall_R']
         rS = cv_metrics[name]['recall_S']
         acc = cv_metrics[name]['accuracy']
-        print(f"\n📊 {name}:")
+        print(f"\n{name}:")
         print(f"   Macro F1  : {mf1*100:6.2f}%")
         print(f"   Recall(R) : {rR*100:6.2f}%")
         print(f"   Recall(S) : {rS*100:6.2f}%")
@@ -353,7 +339,7 @@ def train_all_models(X_train, y_train, n_trials: int = N_TRIALS):
 
     # FIX LỖI 2: fit trên toàn bộ data
     print("\n" + "=" * 60)
-    print("🎯 FITTING MODELS ON FULL TRAINING SET")
+    print("FITTING MODELS ON FULL TRAINING SET")
     print("=" * 60)
     pipe_xgb.fit(X_train, y_train)
     pipe_rf.fit(X_train, y_train)
@@ -361,13 +347,13 @@ def train_all_models(X_train, y_train, n_trials: int = N_TRIALS):
     pipe_lr.fit(X_train, y_train)
 
     # Stacking
-    print("\n📦 Building stacking ensemble...")
+    print("\nBuilding stacking ensemble...")
     stacking = build_stacking_ensemble(pipe_xgb, pipe_rf, pipe_lgbm)
     stacking.fit(X_train, y_train)
 
     # ── THRESHOLD TUNING WITH OOF METRICS ───────────────────────────────────────
     print("\n" + "=" * 60)
-    print("🎯 THRESHOLD TUNING (OOF)")
+    print("THRESHOLD TUNING (OOF)")
     print("=" * 60)
 
     thresholds = {}
@@ -404,8 +390,6 @@ def train_all_models(X_train, y_train, n_trials: int = N_TRIALS):
     print(format_threshold_summary(thresholds, oof_scores))
 
     # ── FINAL MODEL SELECTION & RATIONALE ───────────────────────────────────────
-    # Mặc dù Logistic Regression đạt CV cao nhất trên tập Train, nhưng nó bị quá khớp (overfit) trên tập Test độc lập.
-    # XGBoost đạt khả năng tổng quát hóa tốt nhất trên dữ liệu mới nên được chọn làm mô hình tối ưu cuối cùng.
     best_name = "XGBoost"
 
     cv_df = pd.DataFrame(cv_metrics).T.rename(columns={

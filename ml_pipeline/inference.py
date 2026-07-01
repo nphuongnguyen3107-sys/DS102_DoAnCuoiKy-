@@ -1,6 +1,4 @@
 # ml-pipeline/inference.py
-"""Model persistence and single-patient inference."""
-
 import joblib
 import numpy as np
 import pandas as pd
@@ -16,7 +14,6 @@ def save_model(
     features: list[str],
     model_name: str = "amr_classifier",
 ) -> str:
-    """Lưu model + threshold + feature list vào file joblib."""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     model_path = f"{model_name}_{timestamp}.joblib"
     joblib.dump(
@@ -43,10 +40,6 @@ def find_best_threshold_inner(
     y_proba: np.ndarray,
     target_recall: float = TARGET_RECALL_R,
 ) -> tuple[float, float]:
-    """
-    Tìm threshold tốt nhất: ưu tiên recall Resistant >= target,
-    rồi chọn threshold có macro-F1 cao nhất trong số đó.
-    """
     thresholds = np.arange(0.30, 0.71, 0.001)
     rows = []
     for th in thresholds:
@@ -71,21 +64,7 @@ def predict_one_patient(
     threshold: float,
     expected_features: list[str],
 ) -> dict:
-    """
-    Dự đoán cho 1 bệnh nhân mới.
 
-    Parameters
-    ----------
-    feature_vector : Series với đúng 310 feature columns (theo thứ tự khi train)
-    model : trained pipeline (ImbPipeline)
-    threshold : ngưỡng quyết định
-    expected_features : list tên cột khi train (để đảm bảo thứ tự)
-
-    Returns
-    -------
-    dict với prediction, confidence, prob_resistant
-    """
-    # Đảm bảo đúng thứ tự cột như khi train
     X = feature_vector.reindex(expected_features).values.reshape(1, -1)
     proba = model.predict_proba(X)[0, 1]
     prediction = "Resistant" if proba >= threshold else "Susceptible"

@@ -24,7 +24,7 @@ def main():
     # 1. Tải và phân chia dữ liệu
     print("1. Đang tải dữ liệu...")
     X_train, X_test, y_train, y_test = ml_pipeline.load_data(
-        x_path='data/X.csv', 
+        x_path='data/X_rf.csv', 
         y_path='data/y.csv'
     )
 
@@ -53,7 +53,7 @@ def main():
         model_name="models/amr_classifier"
     )
 
-    print(f"\n✅ Hoàn thành huấn luyện! File mô hình được lưu tại: {model_path}")
+    print(f"\nHoàn thành huấn luyện! File mô hình được lưu tại: {model_path}")
     print("Bạn có thể dùng file .joblib này để tích hợp vào Web App.")
 
     # 5. Đánh giá mô hình trên tập Test (Unseen Data) để kiểm tra độ chính xác
@@ -175,7 +175,7 @@ Dưới đây là bảng so sánh hiệu năng trung bình của các thuật to
 """
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(report_md)
-    print(f"\n[✅] Đã lưu báo cáo huấn luyện vào: {report_path}")
+    print(f"\n[OK] Đã lưu báo cáo huấn luyện vào: {report_path}")
 
 if __name__ == "__main__":
     main()

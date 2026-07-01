@@ -11,8 +11,21 @@ Dự án được sắp xếp và tổ chức lại một cách khoa học theo 
 
 ```text
 Đồ Án DS107 (Tư duy Khoa học dữ liệu)/ 
-├── data/                            # Thư mục chứa dữ liệu đầu vào học máy
-│   ├── X.csv                        # Ma trận đặc trưng (2404 mẫu × 310 đặc trưng)
+├── data/                            # Thư mục chứa dữ liệu và quy trình tiền xử lý sinh học
+│   ├── raw/                         # Dữ liệu sinh học thô (BVBRC_genome_amr.csv)
+│   ├── intermediate/                # Các ma trận đặc trưng trung gian thu được qua các bước xử lý
+│   │   ├── X_features_AMR.csv       # Ma trận gen AMR thô từ AMRFinderPlus (5027 mẫu × 210 đặc trưng)
+│   │   ├── X_train.csv              # Ma trận gen AMR lọc theo nhãn ciprofloxacin (2404 mẫu × 210 đặc trưng)
+│   │   ├── X_rf.csv                 # Ma trận đặc trưng kết hợp (210 gen + 100 k-mer chọn bằng RF)
+│   │   └── y.csv                    # Nhãn kiểu hình ciprofloxacin gốc (2404 mẫu × 1 nhãn)
+│   ├── preprocessing_scripts/       # Các script tiền xử lý độc lập (AMRFinder, extract_kmers, RFE)
+│   │   ├── run_amr.py               # Chạy AMRFinderPlus quét gen kháng từ FASTA thô
+│   │   ├── merge_dataset.py         # Khớp mã mẫu gen với nhãn kiểu hình lâm sàng
+│   │   ├── extract_kmers.py         # Trích xuất k-mer amino acid từ protein sequence
+│   │   └── select_top100_aa_kmers.py# Chọn lọc k-mer bằng Random Forest Importance
+│   ├── PREPROCESSING.md             # Báo cáo kỹ thuật chi tiết về quy trình tiền xử lý
+│   ├── X_rf.csv                     # Ma trận đặc trưng đã lọc (2404 mẫu × 310 đặc trưng)
+│   ├── X_chi2.csv                   # Ma trận đặc trưng chưa lọc (2404 mẫu × 310 đặc trưng)
 │   └── y.csv                        # Nhãn kiểu hình kháng thuốc (Resistant/Susceptible)
 ├── models/                          # Thư mục lưu trữ mô hình và cơ sở dữ liệu lịch sử
 │   ├── amr_classifier_*.joblib      # Các file mô hình đã huấn luyện (đã tối ưu bằng Optuna)
@@ -24,27 +37,23 @@ Dự án được sắp xếp và tổ chức lại một cách khoa học theo 
 │   ├── inference.py                 # Hàm dự đoán đơn mẫu, xuất kết quả kiểu hình
 │   ├── explain.py                   # Tích hợp SHAP sinh giá trị đóng góp đặc trưng cục bộ
 │   └── reporting.py                 # Định dạng bảng siêu tham số, so sánh CV và lý do lựa chọn mô hình
-├── preprocessing/                   # Thư mục tiền xử lý gen và k-mer (đã phẳng hóa)
-│   ├── data/                        # Dữ liệu raw và processed trung gian của tiền xử lý
-│   │   ├── raw/BVBRC_genome_amr.csv # Metadata kiểu hình từ BV-BRC
-│   │   └── processed/               # Các ma trận đặc trưng trung gian thu được
-│   ├── scripts/                     # Các script tiền xử lý độc lập (AMRFinder, K-mer, RFE)
-│   │   ├── run_amr.py               # Chạy AMRFinderPlus quét gen kháng từ FASTA thô
-│   │   ├── merge_dataset.py         # Khớp mã mẫu gen với nhãn kiểu hình lâm sàng
-│   │   ├── K-mer.py                 # Trích xuất k-mer amino acid từ protein sequence
-│   │   └── select_top100_aa_kmers.py# Chọn lọc k-mer bằng Random Forest Importance
-│   └── PREPROCESSING.md             # Báo cáo kỹ thuật chi tiết về quy trình tiền xử lý
-├── static/                          # Các tài nguyên tĩnh giao diện (CSS, JS, Fonts)
-│   ├── css/style.css                # CSS giao diện Glassmorphism hiện đại
-│   └── js/app.js                    # Logic Frontend xử lý AJAX, vẽ biểu đồ Chart.js
-├── templates/                       # Thư mục chứa giao diện HTML
-│   └── index.html                   # Giao diện Dashboard chính (HTML5 + Tailwind-free)
-├── uploads/                         # Thư mục tạm nhận file CSV upload hàng loạt
-├── huong_dan_su_dung_khang_sinh_708.pdf # Tài liệu Hướng dẫn sử dụng kháng sinh của Bộ Y tế (333 trang)
-├── bao_cao_do_an_amr.pdf            # Báo cáo đồ án tóm tắt của nhóm (9 trang)
+├── web/                             # Thư mục giao diện và tài nguyên Web Dashboard
+│   ├── static/                      # Các tài nguyên tĩnh giao diện (CSS, JS, Fonts)
+│   │   ├── css/style.css            # CSS giao diện Glassmorphism hiện đại
+│   │   └── js/app.js                # Logic Frontend xử lý AJAX, vẽ biểu đồ Chart.js
+│   ├── templates/                   # Thư mục chứa giao diện HTML
+│   │   └── index.html               # Giao diện Dashboard chính (HTML5 + Tailwind-free)
+│   └── uploads/                     # Thư mục tạm nhận file CSV upload hàng loạt
+├── docs/                            # Thư mục chứa tài liệu hướng dẫn và thuyết minh
+│   ├── thuyet_minh_de_tai.md        # Thuyết minh chi tiết đề tài nghiên cứu
+│   ├── bao_cao_do_an_amr.pdf        # Báo cáo đồ án tóm tắt của nhóm (9 trang)
+│   └── huong_dan_su_dung_khang_sinh_708.pdf # Hướng dẫn sử dụng kháng sinh của Bộ Y tế
 ├── run_web_app.py                   # Điểm chạy Web App Flask chính
 ├── run_training.py                  # Script huấn luyện và tối ưu mô hình tổng thể
 ├── run_evaluation.py                # Script chạy 4 phân tích đánh giá sâu mô hình
+├── run_comparison.py                # Script so sánh hiệu năng trên các bộ dữ liệu khác nhau
+├── run_report.py                    # Script xuất báo cáo huấn luyện tổng hợp
+├── run_create_pdf.py                # Script hỗ trợ tạo tệp PDF hướng dẫn lâm sàng
 ├── .env                             # Cấu hình biến môi trường và API Keys (Gemini)
 ├── .env.example                     # Mẫu cấu hình biến môi trường
 ├── .gitignore                       # Cấu hình bỏ qua các tệp nặng/nhạy cảm trong Git

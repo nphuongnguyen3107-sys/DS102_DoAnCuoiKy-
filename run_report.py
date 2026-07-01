@@ -24,14 +24,14 @@ import ml_pipeline
 def main():
     model_results_path = "models/all_trained_models.joblib"
     if not os.path.exists(model_results_path):
-        print(f"❌ Không tìm thấy file: {model_results_path}")
+        print(f"[Error] Không tìm thấy file: {model_results_path}")
         print("Vui lòng chạy 'python run_training.py' một lần trước để huấn luyện và lưu mô hình.")
         sys.exit(1)
 
     # 1. Tải dữ liệu
     print("1. Đang tải dữ liệu...")
     X_train, X_test, y_train, y_test = ml_pipeline.load_data(
-        x_path='data/X.csv', 
+        x_path='data/X_rf.csv', 
         y_path='data/y.csv'
     )
 
@@ -162,7 +162,7 @@ Dưới đây là bảng so sánh hiệu năng trung bình của các thuật to
 """
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(report_md)
-    print(f"\n[✅] Đã lưu báo cáo huấn luyện động vào: {report_path}")
+    print(f"\n[OK] Đã lưu báo cáo huấn luyện động vào: {report_path}")
 
 if __name__ == "__main__":
     main()

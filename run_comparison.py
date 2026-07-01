@@ -26,10 +26,10 @@ def main():
     print("STARTING COMPARATIVE TRAINING PIPELINE")
     print("=" * 80)
 
-    # 1. Arrange files: Move final_combined_features.csv to data/ if it's in the root
-    src_path = "final_combined_features.csv"
+    # 1. Arrange files: Move X_chi2.csv to data/ if it's in the root
+    src_path = "X_chi2.csv"
     dest_dir = "data"
-    dest_path = os.path.join(dest_dir, "final_combined_features.csv")
+    dest_path = os.path.join(dest_dir, "X_chi2.csv")
     
     os.makedirs(dest_dir, exist_ok=True)
     
@@ -40,11 +40,11 @@ def main():
         print(f"[1] '{dest_path}' already in data directory or handled.")
 
     if not os.path.exists(dest_path):
-        print(f"Error: {dest_path} not found! Please make sure final_combined_features.csv is in the project.")
+        print(f"Error: {dest_path} not found! Please make sure X_chi2.csv is in the project.")
         return
 
     # Existing RF-selected features
-    x_path = os.path.join(dest_dir, "X.csv")
+    x_path = os.path.join(dest_dir, "X_rf.csv")
     y_path = os.path.join(dest_dir, "y.csv")
 
     if not os.path.exists(x_path):
@@ -56,8 +56,8 @@ def main():
     n_trials = 20
     
     datasets = {
-        "New Combined (310 Features - Unfiltered)": dest_path,
-        "Existing X.csv (310 Features - RF Filtered)": x_path
+        "X_chi2.csv (310 Features - Unfiltered)": dest_path,
+        "X_rf.csv (310 Features - RF Filtered)": x_path
     }
     
     results_summary = {}
@@ -103,15 +103,9 @@ def main():
     comparison_df = pd.DataFrame(results_summary).T
     report_text = f"""# COMPARATIVE TRAINING REPORT
 
-This report compares the performance of the model trained on two different feature sets:
-1. **New Combined (310 Features - Unfiltered)**: The raw combined features dataset.
-2. **Existing X.csv (310 Features - RF Filtered)**: The dataset with Random Forest filtered features.
-
 ## Performance Metrics on Test Set (20 Optuna Trials)
 
 {comparison_df.round(4).to_markdown()}
-
-*Note: F1-Macro and ROC-AUC are the primary metrics used to evaluate the model quality.*
 """
     
     print("\n" + "="*80)
@@ -126,7 +120,7 @@ This report compares the performance of the model trained on two different featu
     report_path = os.path.join(report_dir, "comparison_report.md")
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(report_text)
-    print(f"\n[✅] Saved comparison report to: {report_path}")
+    print(f"\n[OK] Saved comparison report to: {report_path}")
 
 if __name__ == "__main__":
     main()

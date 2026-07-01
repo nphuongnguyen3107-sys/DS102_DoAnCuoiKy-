@@ -644,3 +644,13 @@ assert (X_combined[kmer_cols] <= 1).all().all(), "K-mer freq > 1!"
 ---
 
 **Kết thúc phần Tiền xử lý.** Dữ liệu đã sẵn sàng cho huấn luyện model.
+
+---
+
+> [!NOTE]
+> **Lưu ý cấu trúc tệp sau khi tổ chức lại:**
+> - Toàn bộ các tệp kết quả trung gian từ các bước tiền xử lý sinh học ở trên (như `X_features_AMR.csv`, `X_train.csv`, `y.csv`, `X_rf.csv`) được lưu trữ tại thư mục **`data/intermediate/`**.
+> - Các tệp dữ liệu sạch cuối cùng dùng để chạy huấn luyện và đánh giá mô hình ML được lưu tại thư mục gốc **`data/`**:
+>   - **`data/X_rf.csv`**: Bộ dữ liệu kết hợp 210 gen AMR + 100 k-mer được lọc bằng Random Forest.
+>   - **`data/X_chi2.csv`**: Bộ dữ liệu so sánh 210 gen AMR + 100 k-mer lọc bằng Chi-Square.
+>   - **`data/y.csv`**: Nhãn kiểu hình kháng thuốc ciprofloxacin.

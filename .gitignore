@@ -28,3 +28,5 @@ models/stacking_backups/
 # Local project explanations (not uploaded to GitHub)
 THUYET_MINH_DE_TAI.md
 
+# Agent config files
+.claude/

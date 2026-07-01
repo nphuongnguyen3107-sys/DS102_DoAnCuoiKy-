@@ -340,8 +340,8 @@ Báo cáo này ghi nhận kết quả huấn luyện mô hình phân loại tín
 ## 1. Thông tin mô hình
 * **Thuật toán được chọn:** XGBoost Classifier (Mô hình Boosting cây quyết định)
 * **Phương pháp tối ưu hóa:** Optuna (50 trials)
-* **Kích thước dữ liệu huấn luyện (Train Set):** {{len(X_train)}} mẫu
-* **Kích thước dữ liệu kiểm thử (Test Set):** {{len(X_test)}} mẫu
+* **Kích thước dữ liệu huấn luyện (Train Set):** {len(X_train)} mẫu
+* **Kích thước dữ liệu kiểm thử (Test Set):** {len(X_test)} mẫu
 * **Ngưỡng quyết định (Classification Threshold):** {threshold:.3f}
 
 ## 2. Kết quả đánh giá trên tập Test độc lập (Unseen Data)
@@ -386,8 +386,7 @@ Dưới đây là bảng so sánh hiệu năng trung bình của các thuật to
 ---
 *Báo cáo được tự động tạo bởi hệ thống.*
 """
-    # Replace format double braces with single braces
-    report_md = report_md.replace("{{len(X_train)}}", str(len(X_train))).replace("{{len(X_test)}}", str(len(X_test)))
+    # Placeholders are evaluated directly by f-string
     
     os.makedirs(os.path.dirname(report_path), exist_ok=True)
     with open(report_path, "w", encoding="utf-8") as f:

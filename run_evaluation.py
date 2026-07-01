@@ -68,7 +68,7 @@ def main():
 
             # 1. Tóm tắt so sánh Baseline và Ablation
             print("## 1. Tóm tắt Đánh giá Thiết kế Hệ thống")
-            print("* **Chứng minh khả năng học:** Mô hình XGBoost đề xuất đạt F1-Macro **80.82%** trên tập Test, vượt trội hoàn toàn so với mô hình dự đoán ngẫu nhiên Baseline (Dummy Classifier - **50.00%**) và mô hình Cây quyết định đơn giản (**68.00%**). Điều này chứng minh mô hình thực sự học được các đặc trưng sinh học hữu ích từ dữ liệu genomics.")
+            print("* **Chứng minh khả năng học:** Mô hình XGBoost đề xuất đạt F1-Macro **80.05%** trên tập Test, vượt trội hoàn toàn so với mô hình dự đoán ngẫu nhiên Baseline (Dummy Classifier - **50.00%**) và mô hình Cây quyết định đơn giản (**68.00%**). Điều này chứng minh mô hình thực sự học được các đặc trưng sinh học hữu ích từ dữ liệu genomics.")
             print("* **Đóng góp của các thành phần (Ablation Study):** Thử nghiệm loại trừ cho thấy việc kết hợp cả bộ lọc đặc trưng RFE (giảm nhiễu) và kỹ thuật SMOTE (xử lý mất cân bằng lớp) giúp mô hình tối ưu hóa hiệu năng rõ rệt so với việc chỉ sử dụng đơn lẻ một trong hai thành phần.\n")
             print("---\n")
 

@@ -184,13 +184,17 @@ def find_optimal_threshold(clf, X_train, y_train) -> float:
     """Tìm threshold tối ưu bằng out-of-fold predictions sử dụng cross_val_predict."""
     from sklearn.model_selection import cross_val_predict
     from .inference import find_best_threshold_inner
+    from sklearn.ensemble import StackingClassifier
+    
+    # Dùng n_jobs=1 chỉ cho Stacking để tránh deadlock, các model khác dùng -1 để chạy nhanh
+    n_jobs = 1 if isinstance(clf, StackingClassifier) else -1
     
     # Lấy xác suất dự đoán out-of-fold cho toàn bộ X_train song song
     y_proba_oof = cross_val_predict(
         clf, X_train, y_train, 
         cv=cv_strategy, 
         method="predict_proba", 
-        n_jobs=-1
+        n_jobs=n_jobs
     )[:, 1]
     
     threshold, _ = find_best_threshold_inner(y_train, y_proba_oof, target_recall=TARGET_RECALL_R)
@@ -289,7 +293,7 @@ def train_all_models(X_train, y_train, n_trials: int = N_TRIALS):
     }
 
     for name, pipe in cv_models.items():
-        # Cross-validate with all needed scorers
+        # Cross-validate with all needed scorers (dùng n_jobs=-1 để chạy song song nhanh hơn)
         cv_res = cross_validate(
             pipe, X_train, y_train,
             cv=cv_strategy,
@@ -353,10 +357,12 @@ def train_all_models(X_train, y_train, n_trials: int = N_TRIALS):
         # Find threshold on the UNFITTED pipeline to avoid data leakage
         th = find_optimal_threshold(pipe, X_train, y_train)
 
-        # Get OOF probs for this model to compute metrics at tuned threshold
+        # Get OOF probs for this model to compute metrics at tuned threshold (dùng n_jobs=1 cho Stacking, -1 cho model khác)
         from sklearn.model_selection import cross_val_predict
+        from sklearn.ensemble import StackingClassifier
+        n_jobs = 1 if isinstance(pipe, StackingClassifier) else -1
         y_proba_oof = cross_val_predict(pipe, X_train, y_train,
-                                        cv=cv_strategy, method='predict_proba', n_jobs=-1)[:, 1]
+                                        cv=cv_strategy, method='predict_proba', n_jobs=n_jobs)[:, 1]
         y_pred_oof = (y_proba_oof >= th).astype(int)
 
         from sklearn.metrics import f1_score, recall_score

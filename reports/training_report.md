@@ -5,8 +5,8 @@ Báo cáo này ghi nhận kết quả huấn luyện mô hình phân loại tín
 ## 1. Thông tin mô hình
 * **Thuật toán được chọn:** XGBoost Classifier (Mô hình Boosting cây quyết định)
 * **Phương pháp tối ưu hóa:** Optuna (50 trials)
-* **Kích thước dữ liệu huấn luyện (Train Set):** {len(X_train)} mẫu
-* **Kích thước dữ liệu kiểm thử (Test Set):** {len(X_test)} mẫu
+* **Kích thước dữ liệu huấn luyện (Train Set):** 2043 mẫu
+* **Kích thước dữ liệu kiểm thử (Test Set):** 361 mẫu
 * **Ngưỡng quyết định (Classification Threshold):** 0.498
 
 ## 2. Kết quả đánh giá trên tập Test độc lập (Unseen Data)
@@ -39,9 +39,9 @@ weighted avg       0.81      0.81      0.81       361
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
 | **XGBoost** | 0.498 | 80.89% | 80.05% | 74.15% | 77.86% | 0.8964 |
 | **Logistic Regression** | 0.499 | 81.44% | 80.48% | 72.79% | 79.85% | 0.8913 |
-| **Stacking Ensemble** | 0.523 | 78.95% | 78.29% | 75.51% | 73.51% | 0.8955 |
-| **LightGBM** | 0.493 | 79.50% | 78.81% | 75.51% | 74.50% | 0.8902 |
-| **Random Forest** | 0.467 | 76.73% | 76.29% | 77.55% | 69.09% | 0.8690 |
+| **Stacking Ensemble** | 0.486 | 77.29% | 76.82% | 77.55% | 69.94% | 0.8932 |
+| **LightGBM** | 0.528 | 78.67% | 77.89% | 73.47% | 73.97% | 0.8867 |
+| **Random Forest** | 0.468 | 77.56% | 77.01% | 76.19% | 70.89% | 0.8753 |
 
 
 ### 3.2. Kết quả đánh giá chéo 5-Fold Cross-Validation trên tập Train
@@ -49,16 +49,16 @@ Dưới đây là bảng so sánh hiệu năng trung bình của các thuật to
 
 | Mô hình | Macro F1 | Recall (Kháng - R) | Recall (Nhạy - S) | Accuracy (Độ chính xác) |
 | :--- | :---: | :---: | :---: | :---: |
-| **XGBoost** | 84.84% | 79.85% | 89.33% | 85.46% |
-| **RandomForest** | 82.93% | 75.66% | 89.33% | 83.75% |
-| **LightGBM** | 84.16% | 79.74% | 88.25% | 84.78% |
-| **LogisticRegression** | 86.93% | 81.05% | 91.98% | 87.52% |
+| **XGBoost** | 83.14% | 80.10% | 86.19% | 83.70% |
+| **RandomForest** | 82.47% | 80.10% | 85.03% | 83.02% |
+| **LightGBM** | 84.11% | 80.46% | 87.59% | 84.68% |
+| **LogisticRegression** | 86.98% | 81.18% | 91.98% | 87.57% |
 
 
 ### Phân tích chi tiết và Biện luận khoa học:
 
 1. **Mô hình tuyến tính (Logistic Regression) - Hiệu năng CV cao nhất:**
-   * **Đánh giá:** Đạt hiệu năng Cross-Validation tốt nhất (F1-Macro: 86.93%).
+   * **Đánh giá:** Đạt hiệu năng Cross-Validation tốt nhất (F1-Macro: 86.98%).
    * **Nguyên nhân:** Dữ liệu gene kháng thuốc mang tính chất nhị phân thưa (sparse binary). Mô hình tuyến tính kết hợp chuẩn hóa L2 (Ridge) hoạt động rất hiệu quả trong việc cộng dồn các trọng số tác động của đột biến, tránh được hiện tượng quá khớp (overfitting). Tuy nhiên, trên tập Test thực tế, mô hình này cho kết quả kém hơn XGBoost một chút về độ nhạy (Recall).
 
 2. **Mô hình đề xuất chính thức (XGBoost Classifier):**

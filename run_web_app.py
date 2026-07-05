@@ -540,7 +540,7 @@ def generate_local_chat_reply(message, outcome, probability, top_features):
                "  * **ROC-AUC:** **90.09%** và **PR-AUC:** **88.80%**.\n" \
                "  * **Recall lớp Kháng thuốc (Resistant):** Đạt **79.85%** (XGBoost) và **81.89%** (Stacking) nhờ kỹ thuật cân bằng dữ liệu **SMOTE** (tránh bỏ sót bệnh nhân kháng thuốc trong chẩn đoán lâm sàng).\n" \
                "- ⚙️ **Ngưỡng quyết định (Decision Threshold):**\n" \
-               "  * Được tối ưu ở mức **0.479** cho XGBoost và **0.523** cho Stacking giúp cân bằng hoàn hảo giữa độ chính xác và độ nhạy lâm sàng."
+               "  * Được tối ưu ở mức **0.498** cho XGBoost và **0.486** cho Stacking giúp cân bằng hoàn hảo giữa độ chính xác và độ nhạy lâm sàng."
 
     # 3e. Câu hỏi tình huống lâm sàng chuyên sâu (MDR, MIC, Mang thai + Dị ứng + Kháng parC, Thăt bại Carbapenem)
     if any(k in msg_lower for k in ["đồng thời", "cả hai", "phối hợp gen", "đa kháng", "mdr", "bơm đẩy đi kèm", "bơm đẩy kết hợp", "ước lượng mic", "dải mic", "xét nghiệm bổ sung", "kiểm chứng", "cấy máu", "mang thai bị dị ứng", "thất bại carbapenem", "không giảm sốt", "72h"]):

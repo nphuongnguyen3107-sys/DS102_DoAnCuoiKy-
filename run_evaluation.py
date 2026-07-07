@@ -118,6 +118,47 @@ def main():
             print(f"\n* **Tỷ lệ bỏ sót ca kháng thuốc (False Negative Rate):** **{fn_rate:.2f}%** ({fn}/{total_resistant} ca)")
             print(f"* **Tỷ lệ báo động giả (False Positive Rate):** **{fp_rate:.2f}%** ({fp}/{fp+tn} ca)\n")
 
+            # ================================================================
+            # 3b. TRUY VẾT CHI TIẾT CÁC MẪU FALSE NEGATIVE (Genome ID + QRDR)
+            # ================================================================
+            print("### Chi tiết các mẫu False Negative (kiểm tra đột biến QRDR)")
+
+            # Xác định index của các mẫu FN: thực tế Resistant (1) nhưng dự đoán Susceptible (0)
+            fn_mask = (y_test.values == 1) & (y_pred == 0)
+            fn_genome_ids = y_test.index[fn_mask]
+
+            # Toàn bộ cột đột biến QRDR có trong dữ liệu (không chỉ 3 cột báo cáo nêu tên)
+            qrdr_cols = [c for c in X_test.columns if c.startswith("gyrA_") or c.startswith("parC_")]
+
+            if len(fn_genome_ids) == 0:
+                print("\n*Không có mẫu False Negative nào trong tập test.*\n")
+            elif len(qrdr_cols) == 0:
+                print("\n*Cảnh báo: không tìm thấy cột đột biến gyrA_*/parC_* nào trong X_test — không thể kiểm tra QRDR.*\n")
+            else:
+                fn_qrdr_df = X_test.loc[fn_genome_ids, qrdr_cols].copy()
+                fn_qrdr_df["Co_dot_bien_QRDR_bat_ky"] = fn_qrdr_df[qrdr_cols].sum(axis=1) > 0
+                fn_qrdr_df["Xac_suat_du_doan"] = y_proba[fn_mask]
+
+                n_with_qrdr = int(fn_qrdr_df["Co_dot_bien_QRDR_bat_ky"].sum())
+                n_without_qrdr = len(fn_qrdr_df) - n_with_qrdr
+
+                print(f"\n* Tổng số mẫu FN: **{len(fn_qrdr_df)}**")
+                print(f"* Số mẫu FN CÓ ít nhất 1 đột biến QRDR (gyrA/parC): **{n_with_qrdr}**")
+                print(f"* Số mẫu FN KHÔNG có đột biến QRDR nào: **{n_without_qrdr}**\n")
+
+                print("| Genome ID | Xác suất dự đoán | Có đột biến QRDR? | Các cột QRDR = 1 |")
+                print("| :--- | :---: | :---: | :--- |")
+                for gid, row in fn_qrdr_df.iterrows():
+                    active_muts = [c for c in qrdr_cols if row[c] == 1]
+                    muts_str = ", ".join(active_muts) if active_muts else "—"
+                    has_qrdr = "Có" if row["Co_dot_bien_QRDR_bat_ky"] else "Không"
+                    print(f"| {gid} | {row['Xac_suat_du_doan']:.3f} | {has_qrdr} | {muts_str} |")
+
+                # Lưu danh sách đầy đủ ra file CSV riêng để tiện đối chiếu/thẩm định
+                fn_detail_path = os.path.join(report_dir, "chi_tiet_mau_am_tinh_gia_qrdr.csv")
+                fn_qrdr_df.to_csv(fn_detail_path, encoding="utf-8-sig")
+                print(f"\n*(Đã lưu chi tiết đầy đủ vào `{fn_detail_path}`)*\n")
+
             print("### Biện luận y tế về việc tối ưu ngưỡng quyết định:")
             print(f"1. **Mối nguy hiểm của lỗi False Negative (Dương tính giả - Bỏ sót):** Trong lâm sàng điều trị nhiễm khuẩn, việc chẩn đoán nhầm một vi khuẩn kháng thuốc thành nhạy cảm thuốc (lỗi FN) là cực kỳ nguy hiểm. Bệnh nhân sẽ bị chỉ định sai kháng sinh, dẫn đến điều trị không hiệu quả, bệnh trở nặng hoặc tử vong.")
             print(f"2. **Giải pháp tối ưu hóa:** Ngưỡng quyết định mặc định là `0.5`, nhưng nhóm đã thực hiện tinh chỉnh và hạ ngưỡng xuống **{threshold:.3f}**. Việc này giúp mô hình nhạy bén hơn, giảm thiểu tối đa tỷ lệ bỏ sót ca kháng thuốc xuống mức an toàn lâm sàng, chấp nhận một lượng nhỏ ca báo động giả (FP - điều trị thừa kháng sinh) để bảo vệ tính mạng bệnh nhân.")

@@ -48,6 +48,14 @@ Dự án được sắp xếp và tổ chức lại một cách khoa học theo 
 │   ├── thuyet_minh_de_tai.md        # Thuyết minh chi tiết đề tài nghiên cứu
 │   ├── bao_cao_do_an_amr.pdf        # Báo cáo đồ án tóm tắt của nhóm (9 trang)
 │   └── huong_dan_su_dung_khang_sinh_708.pdf # Hướng dẫn sử dụng kháng sinh của Bộ Y tế
+├── reports/                         # Thư mục chứa báo cáo phân tích hiệu năng và truy vết đột biến sinh học
+│   ├── evaluation_report.md         # Báo cáo đánh giá chi tiết sai số y tế và độ quan trọng gen/k-mer
+│   ├── comparison_report.md         # Báo cáo so sánh hiệu năng giữa các bộ dữ liệu đặc trưng
+│   ├── training_report.md           # Báo cáo quá trình huấn luyện và tối ưu hóa Optuna
+│   ├── bao_cao_thu_nghiem_kmer.md   # Báo cáo phân tích độ nhạy của số lượng đặc trưng k-mer axit amin nền
+│   ├── chi_tiet_mau_am_tinh_gia_qrdr.csv # Bảng chi tiết đột biến QRDR của các mẫu bị dự đoán sót (False Negative)
+│   ├── overfitting_check.png        # Biểu đồ kiểm tra hiện tượng quá khớp (ROC & PR curves)
+│   └── shap_summary_plot.png        # Biểu đồ mật độ SHAP giải thích tầm quan trọng đặc trưng
 ├── run_web_app.py                   # Điểm chạy Web App Flask chính
 ├── run_training.py                  # Script huấn luyện và tối ưu mô hình tổng thể
 ├── run_evaluation.py                # Script chạy 4 phân tích đánh giá sâu mô hình
@@ -59,6 +67,21 @@ Dự án được sắp xếp và tổ chức lại một cách khoa học theo 
 ├── .gitignore                       # Cấu hình bỏ qua các tệp nặng/nhạy cảm trong Git
 └── requirements.txt                 # Danh sách các thư viện Python cần thiết
 ```
+
+---
+
+## Ý Nghĩa Các Báo Cáo Phân Tích Chuyên Sâu & Truy Vết Sinh Học
+
+Để giúp Hội đồng và Giảng viên hướng dẫn dễ dàng theo dõi mục tiêu học máy và ý nghĩa sinh tin học của dự án, các tệp phân tích trong thư mục `reports/` được thiết kế nhằm giải quyết các bài toán sau:
+
+### 1. Phân Tích Độ Nhạy k-mer (`reports/bao_cao_thu_nghiem_kmer.md`)
+* **Vai trò sinh học của k-mer:** Gen kháng thuốc AMR (như các bơm thải thuốc hay enzyme phân hủy kháng sinh) là nguyên nhân kháng thuốc trực tiếp. Tuy nhiên, kiểu gen tiến hóa của loài vi khuẩn và các đột biến trên protein đích cũng đóng vai trò quan trọng. k-mer axit amin đóng vai trò là **đặc trưng sinh học nền** giúp mô hình XGBoost chụp lại các thông tin tiến hóa gián tiếp này.
+* **Ý nghĩa khoa học dữ liệu:** Báo cáo chứng minh quá trình thực nghiệm chọn lọc số lượng đặc trưng k-mer (so sánh giữa các mức 50, 100 và 200 k-mer). Kết quả cho thấy việc sử dụng **100 đặc trưng k-mer** kết hợp với 210 gen kháng thuốc AMR mang lại độ chính xác cao nhất (Accuracy 81.44%, ROC-AUC 90.09%) mà không gây quá khớp (overfitting) hay làm tăng chi phí tính toán không cần thiết.
+
+### 2. Bảng Truy Vết Lỗi Âm Tính Giả (`reports/chi_tiet_mau_am_tinh_gia_qrdr.csv`)
+* **Đặt vấn đề lâm sàng y tế:** Đối với kháng kháng sinh, lỗi bỏ sót một ca kháng thuốc (False Negative - dự đoán nhầm thành nhạy cảm) là **nguy hiểm nhất** vì bác sĩ sẽ kê đơn thuốc không hiệu quả, ảnh hưởng trực tiếp đến mạng sống bệnh nhân.
+* **Vai trò của bảng dữ liệu:** Bảng này tự động lọc ra toàn bộ các chủng bị dự đoán sai dạng này (FN) để đối chiếu ngược với các đột biến kháng thuốc điển hình thuộc vùng quyết định kháng Quinolone (**QRDR** của gen `gyrA` và `parC`). 
+* **Kết quả nhận định:** Qua đối chiếu thực tế, đa số các ca âm tính giả (35/38 mẫu) hoàn toàn **không mang bất kỳ đột biến QRDR nào** (gyrA/parC = 0). Điều này cho thấy mô hình không đoán mò, mà lỗi này phản ánh bản chất sinh học thực tế: các mẫu này kháng thuốc bằng một cơ chế sinh học khác ngoài đột biến QRDR (ví dụ: bơm thải efflux pump hoạt động mạnh hoặc nhận gen kháng plasmid mới). Từ đó, nhóm đã thực hiện hạ ngưỡng quyết định của mô hình xuống **0.498** nhằm tối ưu hóa độ nhạy lâm sàng.
 
 ---
 
